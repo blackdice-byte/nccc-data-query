@@ -15,6 +15,19 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { API_URL } from "@/constants";
+
+const handleGoogleLogin = async () => {
+  try {
+    const response = await fetch(`${API_URL}/api/v1/auth/google-signin`);
+    const data = await response.json();
+    if (data.success && data.data?.authUrl) {
+      window.location.href = data.data.authUrl;
+    }
+  } catch (error) {
+    console.error("Failed to initiate Google login:", error);
+  }
+};
 
 export function LoginForm({
   className,
@@ -55,7 +68,11 @@ export function LoginForm({
               </Field>
               <Field>
                 <Button type="submit">Login</Button>
-                <Button variant="outline" type="button">
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={handleGoogleLogin}
+                >
                   Login with Google
                 </Button>
                 <FieldDescription className="text-center">

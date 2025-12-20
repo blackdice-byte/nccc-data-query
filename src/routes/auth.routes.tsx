@@ -1,6 +1,7 @@
 import Signin from "@/views/auth/signin";
 import Signup from "@/views/auth/signup";
 import ForgotPassword from "@/views/auth/forgot-password";
+import GoogleCallback from "@/views/auth/google-callback";
 
 export const authRoutes = [
     {
@@ -14,5 +15,9 @@ export const authRoutes = [
     {
         path: "forgot-password",
         element: <ForgotPassword/>
+    },
+    {
+        path: "google/callback",
+        element: <GoogleCallback/>
     }
 ]
