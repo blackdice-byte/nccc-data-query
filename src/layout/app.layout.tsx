@@ -7,6 +7,8 @@ import {
   Settings,
   LogOut,
   Home,
+  FileStack,
+  MessageSquareText,
 } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,6 +32,8 @@ import { useAuthStore } from "@/store/auth.store";
 
 const navItems = [
   { to: "/app", icon: Search, label: "Search" },
+  { to: "/app/contracts", icon: FileStack, label: "Contracts" },
+  { to: "/app/query", icon: MessageSquareText, label: "Query" },
   { to: "/app/documents", icon: FileText, label: "Documents" },
   { to: "/app/history", icon: History, label: "History" },
   { to: "/app/bookmarks", icon: Bookmark, label: "Bookmarks" },
@@ -38,6 +42,8 @@ const navItems = [
 
 const routeLabels: Record<string, string> = {
   app: "Dashboard",
+  contracts: "Contracts",
+  query: "Query",
   documents: "Documents",
   history: "History",
   bookmarks: "Bookmarks",
