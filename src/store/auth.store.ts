@@ -39,8 +39,8 @@ export const useAuthStore = create<AuthState>()((set) => ({
       if (data.success) {
         set({
           user: data.data.user,
-          accessToken: data.data.accessToken,
-          refreshToken: data.data.refreshToken,
+          accessToken: data.data.token,
+          refreshToken: data.data?.refreshToken,
           isLoading: false,
         });
         console.log(data);
