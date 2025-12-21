@@ -1,9 +1,20 @@
-import { useState } from "react";
-import { Plus, Upload, X, FileText, Calendar, DollarSign } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  Plus,
+  Upload,
+  X,
+  FileText,
+  Calendar,
+  DollarSign,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useContractStore } from "@/store/contract.store";
+import { useMediaStore } from "@/store/media.store";
+import { toast } from "sonner";
 
 interface ContractForm {
   operator: string;
@@ -14,7 +25,6 @@ interface ContractForm {
   startDate: string;
   endDate: string;
   contractValue: string;
-  status: "active" | "completed" | "pending" | "cancelled";
 }
 
 const initialForm: ContractForm = {
@@ -26,7 +36,6 @@ const initialForm: ContractForm = {
   startDate: "",
   endDate: "",
   contractValue: "",
-  status: "pending",
 };
 
 const Contracts = () => {
@@ -34,6 +43,39 @@ const Contracts = () => {
   const [form, setForm] = useState<ContractForm>(initialForm);
   const [files, setFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
+
+  const {
+    contracts,
+    isLoading: contractLoading,
+    error: contractError,
+    fetchContracts,
+    createContract,
+    clearError: clearContractError,
+  } = useContractStore();
+
+  const {
+    uploadProgress,
+    isLoading: mediaLoading,
+    error: mediaError,
+    clearError: clearMediaError,
+  } = useMediaStore();
+
+  const isLoading = contractLoading || mediaLoading;
+
+  useEffect(() => {
+    fetchContracts();
+  }, [fetchContracts]);
+
+  useEffect(() => {
+    if (contractError) {
+      toast.error(contractError);
+      clearContractError();
+    }
+    if (mediaError) {
+      toast.error(mediaError);
+      clearMediaError();
+    }
+  }, [contractError, mediaError, clearContractError, clearMediaError]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -71,10 +113,22 @@ const Contracts = () => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted:", form);
-    console.log("Files:", files);
+
+    const contractData = {
+      ...form,
+      contractValue: parseFloat(form.contractValue) || 0,
+    };
+
+    const success = await createContract(contractData, files);
+
+    if (success) {
+      toast.success("Contract created successfully");
+      resetForm();
+      fetchContracts();
+    }
   };
 
   const resetForm = () => {
@@ -92,7 +146,7 @@ const Contracts = () => {
             Manage and create contracts with document uploads
           </p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)}>
+        <Button onClick={() => setShowForm(!showForm)} disabled={isLoading}>
           {showForm ? (
             <>
               <X className="h-4 w-4 mr-2" /> Cancel
@@ -104,7 +158,6 @@ const Contracts = () => {
           )}
         </Button>
       </div>
-
 
       {showForm && (
         <Card>
@@ -123,6 +176,7 @@ const Contracts = () => {
                     onChange={handleChange}
                     placeholder="e.g., SEPLAT, NNPC, SHELL"
                     required
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -134,6 +188,7 @@ const Contracts = () => {
                     onChange={handleChange}
                     placeholder="e.g., MONTEGO, SCHLUMBERGER"
                     required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -147,10 +202,11 @@ const Contracts = () => {
                   onChange={handleChange}
                   placeholder="Enter contract title"
                   required
+                  disabled={isLoading}
                 />
               </div>
 
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="contractNumber">Contract Number</Label>
                   <Input
@@ -160,6 +216,7 @@ const Contracts = () => {
                     onChange={handleChange}
                     placeholder="e.g., SEPLAT/MON/2024/001"
                     required
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -173,22 +230,8 @@ const Contracts = () => {
                     min="2000"
                     max="2100"
                     required
+                    disabled={isLoading}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <select
-                    id="status"
-                    name="status"
-                    value={form.status}
-                    onChange={handleChange}
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="active">Active</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
                 </div>
               </div>
 
@@ -205,6 +248,7 @@ const Contracts = () => {
                     value={form.startDate}
                     onChange={handleChange}
                     required
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -219,6 +263,7 @@ const Contracts = () => {
                     value={form.endDate}
                     onChange={handleChange}
                     required
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -235,6 +280,7 @@ const Contracts = () => {
                     placeholder="0.00"
                     min="0"
                     step="0.01"
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -271,11 +317,13 @@ const Contracts = () => {
                     onChange={handleFileChange}
                     className="hidden"
                     accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png"
+                    disabled={isLoading}
                   />
                   <Button
                     type="button"
                     variant="secondary"
                     onClick={() => document.getElementById("fileUpload")?.click()}
+                    disabled={isLoading}
                   >
                     Browse Files
                   </Button>
@@ -306,6 +354,7 @@ const Contracts = () => {
                             variant="ghost"
                             size="icon"
                             onClick={() => removeFile(index)}
+                            disabled={isLoading}
                           >
                             <X className="h-4 w-4" />
                           </Button>
@@ -314,20 +363,49 @@ const Contracts = () => {
                     </div>
                   </div>
                 )}
+
+                {mediaLoading && uploadProgress > 0 && (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between text-sm mb-1">
+                      <span>Uploading files...</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div
+                        className="bg-primary h-2 rounded-full transition-all"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 pt-4">
-                <Button type="button" variant="outline" onClick={resetForm}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={resetForm}
+                  disabled={isLoading}
+                >
                   Cancel
                 </Button>
-                <Button type="submit">Create Contract</Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    "Create Contract"
+                  )}
+                </Button>
               </div>
             </form>
           </CardContent>
         </Card>
       )}
 
-      {!showForm && (
+      {!showForm && contracts.length === 0 && (
         <Card>
           <CardContent className="p-12 text-center">
             <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -338,6 +416,40 @@ const Contracts = () => {
             <Button onClick={() => setShowForm(true)}>
               <Plus className="h-4 w-4 mr-2" /> Create Contract
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {!showForm && contracts.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>All Contracts ({contracts.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {contracts.map((contract) => (
+                <div
+                  key={contract.id}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div>
+                    <h4 className="font-medium">{contract.contractTitle}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {contract.operator} • {contract.contractorName} •{" "}
+                      {contract.contractNumber}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">
+                      ${contract.contractValue?.toLocaleString() || "N/A"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {contract.year}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
