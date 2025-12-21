@@ -23,6 +23,7 @@ interface ContractFilters {
   operator?: string;
   year?: number;
   contractorName?: string;
+  hasDocument?: boolean;
   page?: number;
   limit?: number;
 }
@@ -37,7 +38,10 @@ interface ContractState {
   fetchContracts: (filters?: ContractFilters) => Promise<void>;
   fetchContractById: (id: string) => Promise<void>;
   createContract: (data: ContractInput, files?: File[]) => Promise<boolean>;
-  updateContract: (id: string, data: Partial<ContractInput>) => Promise<boolean>;
+  updateContract: (
+    id: string,
+    data: Partial<ContractInput>
+  ) => Promise<boolean>;
   deleteContract: (id: string) => Promise<boolean>;
   searchContracts: (query: string) => Promise<void>;
   clearError: () => void;
@@ -59,7 +63,10 @@ export const useContractStore = create<ContractState>()((set) => ({
       if (filters.limit) params.append("limit", filters.limit.toString());
       if (filters.operator) params.append("operator", filters.operator);
       if (filters.year) params.append("year", filters.year.toString());
-      if (filters.contractorName) params.append("contractorName", filters.contractorName);
+      if (filters.contractorName)
+        params.append("contractorName", filters.contractorName);
+      if (filters.hasDocument !== undefined)
+        params.append("hasDocument", filters.hasDocument.toString());
 
       const { data } = await api.get(`/contracts?${params.toString()}`);
       if (data.success) {
@@ -84,7 +91,6 @@ export const useContractStore = create<ContractState>()((set) => ({
     }
   },
 
-
   fetchContractById: async (id) => {
     set({ isLoading: true, error: null });
     try {
@@ -106,8 +112,13 @@ export const useContractStore = create<ContractState>()((set) => ({
   createContract: async (contractData, files) => {
     set({ isLoading: true, error: null });
     try {
-      // First create the contract
-      const { data } = await api.post("/contracts", contractData);
+      const hasDocument = files && files.length > 0;
+
+      // Create the contract with hasDocument flag
+      const { data } = await api.post("/contracts", {
+        ...contractData,
+        hasDocument,
+      });
       if (!data.success) {
         set({ error: data.message, isLoading: false });
         return false;
@@ -116,9 +127,9 @@ export const useContractStore = create<ContractState>()((set) => ({
       const contractId = data.data._id;
 
       // Upload files if provided
-      if (files && files.length > 0) {
+      if (hasDocument) {
         const formData = new FormData();
-        files.forEach((file) => formData.append("files", file));
+        files!.forEach((file) => formData.append("files", file));
         formData.append("contractId", contractId);
 
         await api.post("/media/multiple", formData, {
@@ -147,11 +158,11 @@ export const useContractStore = create<ContractState>()((set) => ({
       const { data } = await api.put(`/contracts/${id}`, contractData);
       if (data.success) {
         set((state) => ({
-          contracts: state.contracts.map((c) =>
-            c.id === id ? data.data : c
-          ),
+          contracts: state.contracts.map((c) => (c.id === id ? data.data : c)),
           currentContract:
-            state.currentContract?.id === id ? data.data : state.currentContract,
+            state.currentContract?.id === id
+              ? data.data
+              : state.currentContract,
           isLoading: false,
         }));
         return true;
@@ -198,7 +209,9 @@ export const useContractStore = create<ContractState>()((set) => ({
   searchContracts: async (query) => {
     set({ isLoading: true, error: null });
     try {
-      const { data } = await api.get(`/contracts/search?q=${encodeURIComponent(query)}`);
+      const { data } = await api.get(
+        `/contracts/search?q=${encodeURIComponent(query)}`
+      );
       if (data.success) {
         set({ contracts: data.data, isLoading: false });
       } else {

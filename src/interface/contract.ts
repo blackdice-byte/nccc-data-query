@@ -5,8 +5,9 @@ export interface IContract {
   contractTitle: string;
   year: string;
   contractNumber: string;
-  startDate: string;  // Format: YYYY-MM-DD
-  endDate: string;    // Format: YYYY-MM-DD
-  contractValue: number;  // In USD or relevant currency
+  startDate: string;
+  endDate: string;
+  contractValue: number;
   status: "active" | "completed" | "pending" | "cancelled";
+  hasDocument: boolean;
 };

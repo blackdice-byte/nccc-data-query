@@ -7,6 +7,8 @@ import {
   Calendar,
   DollarSign,
   Loader2,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -112,7 +114,6 @@ const Contracts = () => {
   const removeFile = (index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -285,7 +286,6 @@ const Contracts = () => {
                 </div>
               </div>
 
-
               {/* Document Upload Section */}
               <div className="space-y-2">
                 <Label>
@@ -322,7 +322,9 @@ const Contracts = () => {
                   <Button
                     type="button"
                     variant="secondary"
-                    onClick={() => document.getElementById("fileUpload")?.click()}
+                    onClick={() =>
+                      document.getElementById("fileUpload")?.click()
+                    }
                     disabled={isLoading}
                   >
                     Browse Files
@@ -432,12 +434,19 @@ const Contracts = () => {
                   key={contract.id}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                 >
-                  <div>
-                    <h4 className="font-medium">{contract.contractTitle}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {contract.operator} • {contract.contractorName} •{" "}
-                      {contract.contractNumber}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    {contract.hasDocument ? (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-muted-foreground" />
+                    )}
+                    <div>
+                      <h4 className="font-medium">{contract.contractTitle}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {contract.operator} • {contract.contractorName} •{" "}
+                        {contract.contractNumber}
+                      </p>
+                    </div>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-medium">
