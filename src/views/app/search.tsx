@@ -8,6 +8,7 @@ import {
   FileText,
   CheckCircle,
   XCircle,
+  ExternalLink,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -83,7 +84,6 @@ const Search = () => {
       socket.off("contract:search:error");
     };
   }, []);
-
 
   const handleSearch = useCallback(
     (e?: React.FormEvent) => {
@@ -161,14 +161,16 @@ const Search = () => {
           </p>
         )}
 
-
         {/* Search Results */}
         {hasSearched && results.length > 0 && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Search Results</h2>
             <div className="space-y-3">
               {results.map((contract) => (
-                <Card key={contract._id} className="hover:bg-muted/50 transition-colors">
+                <Card
+                  key={contract._id}
+                  className="hover:bg-muted/50 transition-colors"
+                >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3">
@@ -178,17 +180,35 @@ const Search = () => {
                           <XCircle className="h-5 w-5 text-muted-foreground mt-1" />
                         )}
                         <div>
-                          <h3 className="font-medium">{contract.contractTitle}</h3>
+                          <h3 className="font-medium">
+                            {contract.contractTitle}
+                          </h3>
                           <p className="text-sm text-muted-foreground">
                             {contract.operator} • {contract.contractorName} •{" "}
                             {contract.contractNumber}
                           </p>
                           {contract.media && contract.media.length > 0 && (
-                            <div className="flex items-center gap-2 mt-2">
-                              <FileText className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-xs text-muted-foreground">
-                                {contract.media.length} document(s)
-                              </span>
+                            <div className="mt-2 space-y-1">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">
+                                  {contract.media.length} document(s)
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {contract.media.map((doc, idx) => (
+                                  <a
+                                    key={idx}
+                                    href={doc.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                                  >
+                                    <ExternalLink className="h-3 w-3" />
+                                    {doc.originalName || doc.filename}
+                                  </a>
+                                ))}
+                              </div>
                             </div>
                           )}
                         </div>
