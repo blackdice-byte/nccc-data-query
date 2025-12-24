@@ -9,6 +9,7 @@ import {
   CheckCircle,
   XCircle,
   ExternalLink,
+  Archive,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ interface SearchResult extends IContract {
     filename: string;
     originalName: string;
   }>;
+  zipUrl?: string | null;
 }
 
 const recentSearches = [
@@ -194,6 +196,17 @@ const Search = () => {
                                 <span className="text-xs text-muted-foreground">
                                   {contract.media.length} document(s)
                                 </span>
+                                {contract.zipUrl && (
+                                  <a
+                                    href={contract.zipUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline ml-2"
+                                  >
+                                    <Archive className="h-3 w-3" />
+                                    Download All
+                                  </a>
+                                )}
                               </div>
                               <div className="flex flex-wrap gap-2">
                                 {contract.media.map((doc, idx) => (

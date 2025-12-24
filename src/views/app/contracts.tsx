@@ -9,14 +9,25 @@ import {
   Loader2,
   CheckCircle,
   XCircle,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from "@/components/ui/sheet";
 import { useContractStore } from "@/store/contract.store";
 import { useMediaStore } from "@/store/media.store";
 import { toast } from "sonner";
+import type { IContract } from "@/interface/contract";
+import { api } from "@/config/axios";
 
 interface ContractForm {
   operator: string;
@@ -27,6 +38,13 @@ interface ContractForm {
   startDate: string;
   endDate: string;
   contractValue: string;
+}
+
+interface MediaItem {
+  _id: string;
+  url: string;
+  filename: string;
+  originalName: string;
 }
 
 const initialForm: ContractForm = {
@@ -46,12 +64,23 @@ const Contracts = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
 
+  // Sheet/Drawer state
+  const [selectedContract, setSelectedContract] = useState<IContract | null>(
+    null
+  );
+  const [editForm, setEditForm] = useState<ContractForm>(initialForm);
+  const [editFiles, setEditFiles] = useState<File[]>([]);
+  const [editDragActive, setEditDragActive] = useState(false);
+  const [contractMedia, setContractMedia] = useState<MediaItem[]>([]);
+  const [isLoadingMedia, setIsLoadingMedia] = useState(false);
+
   const {
     contracts,
     isLoading: contractLoading,
     error: contractError,
     fetchContracts,
     createContract,
+    updateContract,
     clearError: clearContractError,
   } = useContractStore();
 
@@ -136,6 +165,116 @@ const Contracts = () => {
     setForm(initialForm);
     setFiles([]);
     setShowForm(false);
+  };
+
+  // Sheet handlers
+  const openContractSheet = async (contract: IContract) => {
+    setSelectedContract(contract);
+    setEditForm({
+      operator: contract.operator,
+      contractorName: contract.contractorName,
+      contractTitle: contract.contractTitle,
+      year: contract.year,
+      contractNumber: contract.contractNumber,
+      startDate: contract.startDate?.split("T")[0] || "",
+      endDate: contract.endDate?.split("T")[0] || "",
+      contractValue: contract.contractValue?.toString() || "",
+    });
+    setEditFiles([]);
+
+    // Fetch media for this contract
+    setIsLoadingMedia(true);
+    try {
+      const { data } = await api.get(`/media?contractId=${contract.id}`);
+      if (data.success) {
+        setContractMedia(data.data.media || []);
+      }
+    } catch {
+      setContractMedia([]);
+    } finally {
+      setIsLoadingMedia(false);
+    }
+  };
+
+  const closeContractSheet = () => {
+    setSelectedContract(null);
+    setEditForm(initialForm);
+    setEditFiles([]);
+    setContractMedia([]);
+  };
+
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setEditDragActive(true);
+    } else if (e.type === "dragleave") {
+      setEditDragActive(false);
+    }
+  };
+
+  const handleEditDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEditDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      setEditFiles((prev) => [...prev, ...Array.from(e.dataTransfer.files)]);
+    }
+  };
+
+  const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setEditFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+    }
+  };
+
+  const removeEditFile = (index: number) => {
+    setEditFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedContract) return;
+
+    const contractData = {
+      ...editForm,
+      contractValue: parseFloat(editForm.contractValue) || 0,
+    };
+
+    const success = await updateContract(selectedContract.id, contractData);
+
+    // Upload new files if any
+    if (editFiles.length > 0) {
+      const formData = new FormData();
+      editFiles.forEach((file) => formData.append("files", file));
+      formData.append("contractId", selectedContract.id);
+
+      try {
+        await api.post("/media/multiple", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        // Update hasDocument flag if needed
+        if (!selectedContract.hasDocument) {
+          await api.put(`/contracts/${selectedContract.id}`, {
+            hasDocument: true,
+          });
+        }
+      } catch {
+        toast.error("Failed to upload files");
+      }
+    }
+
+    if (success) {
+      toast.success("Contract updated successfully");
+      closeContractSheet();
+      fetchContracts();
+    }
   };
 
   return (
@@ -432,7 +571,8 @@ const Contracts = () => {
               {contracts.map((contract) => (
                 <div
                   key={contract.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  onClick={() => openContractSheet(contract)}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
                     {contract.hasDocument ? (
@@ -462,6 +602,246 @@ const Contracts = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Edit Contract Sheet */}
+      <Sheet
+        open={!!selectedContract}
+        onOpenChange={(open) => !open && closeContractSheet()}
+      >
+        <SheetContent className="overflow-y-auto sm:max-w-xl px-3">
+          <SheetHeader>
+            <SheetTitle>Edit Contract</SheetTitle>
+            <SheetDescription>
+              Update contract details and upload additional documents
+            </SheetDescription>
+          </SheetHeader>
+
+          <form onSubmit={handleEditSubmit} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-operator">Operator</Label>
+              <Input
+                id="edit-operator"
+                name="operator"
+                value={editForm.operator}
+                onChange={handleEditChange}
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-contractorName">Contractor Name</Label>
+              <Input
+                id="edit-contractorName"
+                name="contractorName"
+                value={editForm.contractorName}
+                onChange={handleEditChange}
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-contractTitle">Contract Title</Label>
+              <Input
+                id="edit-contractTitle"
+                name="contractTitle"
+                value={editForm.contractTitle}
+                onChange={handleEditChange}
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-contractNumber">Contract Number</Label>
+                <Input
+                  id="edit-contractNumber"
+                  name="contractNumber"
+                  value={editForm.contractNumber}
+                  onChange={handleEditChange}
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-year">Year</Label>
+                <Input
+                  id="edit-year"
+                  name="year"
+                  type="number"
+                  value={editForm.year}
+                  onChange={handleEditChange}
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-startDate">Start Date</Label>
+                <Input
+                  id="edit-startDate"
+                  name="startDate"
+                  type="date"
+                  value={editForm.startDate}
+                  onChange={handleEditChange}
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-endDate">End Date</Label>
+                <Input
+                  id="edit-endDate"
+                  name="endDate"
+                  type="date"
+                  value={editForm.endDate}
+                  onChange={handleEditChange}
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-contractValue">Contract Value</Label>
+              <Input
+                id="edit-contractValue"
+                name="contractValue"
+                type="number"
+                value={editForm.contractValue}
+                onChange={handleEditChange}
+                disabled={isLoading}
+              />
+            </div>
+
+            {/* Existing Documents */}
+            <div className="space-y-2">
+              <Label>Existing Documents</Label>
+              {isLoadingMedia ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading documents...
+                </div>
+              ) : contractMedia.length > 0 ? (
+                <div className="space-y-2">
+                  {contractMedia.map((doc) => (
+                    <div
+                      key={doc._id}
+                      className="flex items-center justify-between p-2 bg-muted rounded-md"
+                    >
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm truncate max-w-[200px]">
+                          {doc.originalName || doc.filename}
+                        </span>
+                      </div>
+                      <a
+                        href={doc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No documents uploaded
+                </p>
+              )}
+            </div>
+
+            {/* Upload New Documents */}
+            <div className="space-y-2">
+              <Label>Upload New Documents</Label>
+              <div
+                className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
+                  editDragActive
+                    ? "border-primary bg-primary/5"
+                    : "border-muted-foreground/25 hover:border-muted-foreground/50"
+                }`}
+                onDragEnter={handleEditDrag}
+                onDragLeave={handleEditDrag}
+                onDragOver={handleEditDrag}
+                onDrop={handleEditDrop}
+              >
+                <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
+                <p className="text-xs text-muted-foreground mb-2">
+                  Drag and drop or click to browse
+                </p>
+                <input
+                  type="file"
+                  id="editFileUpload"
+                  multiple
+                  onChange={handleEditFileChange}
+                  className="hidden"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png"
+                  disabled={isLoading}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() =>
+                    document.getElementById("editFileUpload")?.click()
+                  }
+                  disabled={isLoading}
+                >
+                  Browse
+                </Button>
+              </div>
+
+              {editFiles.length > 0 && (
+                <div className="space-y-2 mt-2">
+                  {editFiles.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-2 bg-muted rounded-md"
+                    >
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm truncate max-w-[200px]">
+                          {file.name}
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => removeEditFile(index)}
+                        disabled={isLoading}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <SheetFooter className="pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeContractSheet}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </SheetFooter>
+          </form>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
