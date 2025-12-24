@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { api } from "@/config/axios";
 import { type IAuthUser } from "@/interface/user";
+import { API_URL } from "@/constants";
 
 interface AuthState {
   user: IAuthUser | null;
@@ -11,10 +12,12 @@ interface AuthState {
 
   signin: (email: string, password: string) => Promise<boolean>;
   signup: (data: SignupData) => Promise<boolean>;
+  googleSignin: (code: string) => Promise<boolean>;
   verifyAccount: (userId: string) => Promise<void>;
   logout: () => void;
   setAuth: (user: IAuthUser, accessToken: string, refreshToken: string) => void;
   clearError: () => void;
+  initializeFromStorage: () => void;
 }
 
 interface SignupData {
@@ -39,13 +42,13 @@ export const useAuthStore = create<AuthState>()((set) => ({
       if (data.success) {
         set({
           user: data.data.user,
-          accessToken: data.data.token,
+          accessToken: data.data.accessToken,
           refreshToken: data.data?.refreshToken,
           isLoading: false,
         });
-        console.log(data);
         localStorage.setItem("accessToken", data.data.accessToken);
         localStorage.setItem("refreshToken", data.data.refreshToken);
+        localStorage.setItem("user", JSON.stringify(data.data.user));
         return true;
       } else {
         set({ error: data.message, isLoading: false });
@@ -82,6 +85,39 @@ export const useAuthStore = create<AuthState>()((set) => ({
     }
   },
 
+  googleSignin: async (code) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await fetch(
+        `${API_URL}/api/v1/auth/google-signin/callback?code=${code}`
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        set({
+          user: data.data.user,
+          accessToken: data.data.accessToken,
+          refreshToken: data.data.refreshToken,
+          isLoading: false,
+        });
+        localStorage.setItem("accessToken", data.data.accessToken);
+        localStorage.setItem("refreshToken", data.data.refreshToken);
+        localStorage.setItem("user", JSON.stringify(data.data.user));
+        return true;
+      } else {
+        set({ error: data.message || "Authentication failed", isLoading: false });
+        return false;
+      }
+    } catch (err: unknown) {
+      console.error(err);
+      set({
+        error: "Failed to complete authentication",
+        isLoading: false,
+      });
+      return false;
+    }
+  },
+
   verifyAccount: async (userId) => {
     set({ isLoading: true, error: null });
     try {
@@ -103,13 +139,33 @@ export const useAuthStore = create<AuthState>()((set) => ({
   logout: () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
     set({ user: null, accessToken: null, refreshToken: null });
   },
 
   setAuth: (user, accessToken, refreshToken) => {
     localStorage.setItem("accessToken", accessToken);
     localStorage.setItem("refreshToken", refreshToken);
+    localStorage.setItem("user", JSON.stringify(user));
     set({ user, accessToken, refreshToken });
+  },
+
+  initializeFromStorage: () => {
+    const accessToken = localStorage.getItem("accessToken");
+    const refreshToken = localStorage.getItem("refreshToken");
+    const userStr = localStorage.getItem("user");
+    
+    if (accessToken && userStr) {
+      try {
+        const user = JSON.parse(userStr) as IAuthUser;
+        set({ user, accessToken, refreshToken });
+      } catch {
+        // Invalid user data, clear storage
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("user");
+      }
+    }
   },
 
   clearError: () => set({ error: null }),
