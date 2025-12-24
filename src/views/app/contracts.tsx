@@ -155,7 +155,7 @@ const Contracts = () => {
     const success = await createContract(contractData, files);
 
     if (success) {
-      toast.success("Contract created successfully");
+      toast.success("NCCC Contract created successfully");
       resetForm();
       fetchContracts();
     }
@@ -271,7 +271,7 @@ const Contracts = () => {
     }
 
     if (success) {
-      toast.success("Contract updated successfully");
+      toast.success("NCCC Contract updated successfully");
       closeContractSheet();
       fetchContracts();
     }
@@ -281,9 +281,9 @@ const Contracts = () => {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Contracts</h1>
+          <h1 className="text-2xl font-bold">NCCC Contracts</h1>
           <p className="text-muted-foreground">
-            Manage and create contracts with document uploads
+            Manage and create NCCC contracts with document uploads
           </p>
         </div>
         <Button onClick={() => setShowForm(!showForm)} disabled={isLoading}>
@@ -293,7 +293,7 @@ const Contracts = () => {
             </>
           ) : (
             <>
-              <Plus className="h-4 w-4 mr-2" /> New Contract
+              <Plus className="h-4 w-4 mr-2" /> New NCCC Contract
             </>
           )}
         </Button>
@@ -302,7 +302,7 @@ const Contracts = () => {
       {showForm && (
         <Card>
           <CardHeader>
-            <CardTitle>Create New Contract</CardTitle>
+            <CardTitle>Create New NCCC Contract</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -429,7 +429,7 @@ const Contracts = () => {
               <div className="space-y-2">
                 <Label>
                   <Upload className="h-4 w-4 inline mr-1" />
-                  Contract Documents
+                  NCCC Contract Documents
                 </Label>
                 <div
                   className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
@@ -537,7 +537,7 @@ const Contracts = () => {
                       Creating...
                     </>
                   ) : (
-                    "Create Contract"
+                    "Create NCCC Contract"
                   )}
                 </Button>
               </div>
@@ -550,12 +550,12 @@ const Contracts = () => {
         <Card>
           <CardContent className="p-12 text-center">
             <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">No contracts yet</h3>
+            <h3 className="text-lg font-medium mb-2">No NCCC contracts yet</h3>
             <p className="text-muted-foreground mb-4">
-              Get started by creating your first contract
+              Get started by creating your first NCCC contract
             </p>
             <Button onClick={() => setShowForm(true)}>
-              <Plus className="h-4 w-4 mr-2" /> Create Contract
+              <Plus className="h-4 w-4 mr-2" /> Create NCCC Contract
             </Button>
           </CardContent>
         </Card>
@@ -564,7 +564,7 @@ const Contracts = () => {
       {!showForm && contracts.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>All Contracts ({contracts.length})</CardTitle>
+            <CardTitle>All NCCC Contracts ({contracts.length})</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -610,9 +610,9 @@ const Contracts = () => {
       >
         <SheetContent className="overflow-y-auto sm:max-w-xl px-3">
           <SheetHeader>
-            <SheetTitle>Edit Contract</SheetTitle>
+            <SheetTitle>Edit NCCC Contract</SheetTitle>
             <SheetDescription>
-              Update contract details and upload additional documents
+              Update NCCC contract details and upload additional documents
             </SheetDescription>
           </SheetHeader>
 

@@ -31,7 +31,7 @@ import {
 import { useAuthStore } from "@/store/auth.store";
 
 const navItems = [
-  { to: "/app", icon: Search, label: "Search" },
+  { to: "/app", icon: Search, label: "Search NCCC" },
   { to: "/app/contracts", icon: FileStack, label: "Contracts" },
   { to: "/app/query", icon: MessageSquareText, label: "Query" },
   { to: "/app/documents", icon: FileText, label: "Documents" },
@@ -90,7 +90,7 @@ const AppLayout = () => {
               alt="logo"
               className="h-10 w-10 object-contain"
             />
-            <h1 className="text-lg font-semibold">DocQuery</h1>
+            <h1 className="text-lg font-semibold">NCCC Data Query</h1>
           </div>
         </div>
 

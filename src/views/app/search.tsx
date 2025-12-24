@@ -114,7 +114,7 @@ const Search = () => {
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold tracking-tight">DocQuery</h1>
           <p className="text-muted-foreground">
-            Search contracts, documents, and more
+            Search NCCC contracts, documents, and more
           </p>
         </div>
 
@@ -150,7 +150,7 @@ const Search = () => {
                   Searching...
                 </>
               ) : (
-                "Search Documents"
+                "Search NCCC Documents"
               )}
             </Button>
           </div>
@@ -166,7 +166,7 @@ const Search = () => {
         {/* Search Results */}
         {hasSearched && results.length > 0 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Search Results</h2>
+            <h2 className="text-lg font-semibold">NCCC Search Results</h2>
             <div className="space-y-3">
               {results.map((contract) => (
                 <Card
@@ -246,7 +246,7 @@ const Search = () => {
         {hasSearched && !isSearching && results.length === 0 && (
           <div className="text-center py-8">
             <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">No contracts found</p>
+            <p className="text-muted-foreground">No NCCC contracts found</p>
           </div>
         )}
 
