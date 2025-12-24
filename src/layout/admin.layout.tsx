@@ -1,14 +1,12 @@
-import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
+import { Outlet, NavLink, useNavigate, useLocation, Navigate } from "react-router-dom";
 import {
-  Search,
-  FileText,
-  History,
-  Bookmark,
+  FileStack,
   Settings,
   LogOut,
   Home,
-  MessageSquareText,
   Shield,
+  Users,
+  BarChart3,
 } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,36 +28,34 @@ import {
 } from "@/components/ui/breadcrumb";
 import { useAuthStore } from "@/store/auth.store";
 
-interface NavItem {
-  to: string;
-  icon: typeof Search;
-  label: string;
-}
-
-const navItems: NavItem[] = [
-  { to: "/app", icon: Search, label: "Search NCCC" },
-  { to: "/app/query", icon: MessageSquareText, label: "Query" },
-  { to: "/app/documents", icon: FileText, label: "Documents" },
-  { to: "/app/history", icon: History, label: "History" },
-  { to: "/app/bookmarks", icon: Bookmark, label: "Bookmarks" },
-  { to: "/app/settings", icon: Settings, label: "Settings" },
+const adminNavItems = [
+  { to: "/admin", icon: BarChart3, label: "Dashboard" },
+  { to: "/admin/contracts", icon: FileStack, label: "NCCC Contracts" },
+  { to: "/admin/users", icon: Users, label: "Users" },
+  { to: "/admin/settings", icon: Settings, label: "Settings" },
 ];
 
 const routeLabels: Record<string, string> = {
-  app: "Dashboard",
-  contracts: "Contracts",
-  query: "Query",
-  documents: "Documents",
-  history: "History",
-  bookmarks: "Bookmarks",
+  admin: "Admin",
+  contracts: "NCCC Contracts",
+  users: "Users",
   settings: "Settings",
 };
 
-const AppLayout = () => {
+const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuthStore();
-  console.log(user);
+
+  // Redirect if not logged in or not admin
+  if (!user) {
+    return <Navigate to="/auth/signin" replace />;
+  }
+
+  if (user.role !== "admin") {
+    return <Navigate to="/app" replace />;
+  }
+
   const handleLogout = () => {
     logout();
     navigate("/auth/signin");
@@ -95,16 +91,22 @@ const AppLayout = () => {
               alt="logo"
               className="h-10 w-10 object-contain"
             />
-            <h1 className="text-lg font-semibold">NCCC Data Query</h1>
+            <div>
+              <h1 className="text-lg font-semibold">NCCC Admin</h1>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Shield className="h-3 w-3" />
+                Admin Panel
+              </div>
+            </div>
           </div>
         </div>
 
         <nav className="flex-1 p-2 space-y-1">
-          {navItems.map(({ to, icon: Icon, label }) => (
+          {adminNavItems.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
-              end={to === "/app"}
+              end={to === "/admin"}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
                   isActive
@@ -117,24 +119,16 @@ const AppLayout = () => {
               {label}
             </NavLink>
           ))}
-          {user?.role === "admin" && (
-            <NavLink
-              to="/admin"
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted"
-                }`
-              }
-            >
-              <Shield className="h-4 w-4" />
-              Admin Panel
-            </NavLink>
-          )}
         </nav>
 
         <div className="p-2 border-t space-y-1">
+          <NavLink
+            to="/app"
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-muted"
+          >
+            <Home className="h-4 w-4" />
+            Back to App
+          </NavLink>
           <div className="flex items-center justify-between px-3 py-2">
             <span className="text-sm">Theme</span>
             <ModeToggle />
@@ -150,14 +144,12 @@ const AppLayout = () => {
       </aside>
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Navigation */}
         <header className="h-14 border-b flex items-center justify-between px-4">
-          {/* Breadcrumb */}
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/app" className="flex items-center gap-1">
-                  <Home className="h-4 w-4" />
+                <BreadcrumbLink href="/admin" className="flex items-center gap-1">
+                  <Shield className="h-4 w-4" />
                 </BreadcrumbLink>
               </BreadcrumbItem>
               {breadcrumbs.slice(1).map((crumb) => (
@@ -175,7 +167,6 @@ const AppLayout = () => {
             </BreadcrumbList>
           </Breadcrumb>
 
-          {/* User Profile */}
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-3 outline-none">
               <div className="text-right">
@@ -190,9 +181,9 @@ const AppLayout = () => {
               </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>Admin Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/app/settings")}>
+              <DropdownMenuItem onClick={() => navigate("/admin/settings")}>
                 <Settings className="mr-2 h-4 w-4" />
                 Settings
               </DropdownMenuItem>
@@ -216,4 +207,4 @@ const AppLayout = () => {
   );
 };
 
-export default AppLayout;
+export default AdminLayout;

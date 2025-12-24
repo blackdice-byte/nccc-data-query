@@ -3,9 +3,11 @@ import { publicRoutes } from "./public.routes";
 import HomeLayout from "@/layout/public.layout";
 import { createBrowserRouter } from "react-router-dom";
 import { appRoutes } from "./app.routes";
+import { adminRoutes } from "./admin.routes";
 import ErrorView from "@/views/error-view";
 import AuthLayout from "@/layout/auth.layout";
 import { authRoutes } from "./auth.routes";
+import AdminLayout from "@/layout/admin.layout";
 
 export const routes = createBrowserRouter([
   {
@@ -17,7 +19,12 @@ export const routes = createBrowserRouter([
   {
     path: "/app",
     element: <AppLayout />,
-    children: [...appRoutes],
+    children: appRoutes,
+  },
+  {
+    path: "/admin",
+    element: <AdminLayout />,
+    children: adminRoutes,
   },
   {
     path: "/auth",

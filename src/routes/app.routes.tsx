@@ -1,5 +1,4 @@
 import Bookmarks from "@/views/app/bookmarks";
-import Contracts from "@/views/app/contracts";
 import Document from "@/views/app/documents";
 import History from "@/views/app/history";
 import Query from "@/views/app/query";
@@ -10,10 +9,6 @@ export const appRoutes = [
   {
     index: true,
     element: <Search />,
-  },
-  {
-    path: "contracts",
-    element: <Contracts />,
   },
   {
     path: "query",
