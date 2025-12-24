@@ -6,26 +6,12 @@ import {
   TrendingUp,
   Loader2,
   FileText,
-  CheckCircle,
-  XCircle,
-  ExternalLink,
-  Archive,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { getSocket } from "@/config/socket";
-import type { IContract } from "@/interface/contract";
-
-interface SearchResult extends IContract {
-  _id: string;
-  media?: Array<{
-    url: string;
-    filename: string;
-    originalName: string;
-  }>;
-  zipUrl?: string | null;
-}
+import { SearchTable } from "./search-table";
+import { searchColumns, type SearchResult } from "./search-columns";
 
 const recentSearches = [
   "SEPLAT drilling contracts 2023",
@@ -109,7 +95,7 @@ const Search = () => {
 
   return (
     <div className="flex flex-col items-center min-h-[calc(100vh-3.5rem)] px-4 py-8">
-      <div className="w-full max-w-3xl space-y-6">
+      <div className="w-full max-w-6xl space-y-6">
         {/* Logo/Title */}
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold tracking-tight">DocQuery</h1>
@@ -119,7 +105,7 @@ const Search = () => {
         </div>
 
         {/* Search Bar */}
-        <form onSubmit={handleSearch} className="relative">
+        <form onSubmit={handleSearch} className="relative max-w-3xl mx-auto">
           <div className="relative flex items-center">
             <SearchIcon className="absolute left-4 h-5 w-5 text-muted-foreground" />
             <Input
@@ -163,82 +149,11 @@ const Search = () => {
           </p>
         )}
 
-        {/* Search Results */}
+        {/* Search Results Table */}
         {hasSearched && results.length > 0 && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">NCCC Search Results</h2>
-            <div className="space-y-3">
-              {results.map((contract) => (
-                <Card
-                  key={contract._id}
-                  className="hover:bg-muted/50 transition-colors"
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3">
-                        {contract.hasDocument ? (
-                          <CheckCircle className="h-5 w-5 text-green-500 mt-1" />
-                        ) : (
-                          <XCircle className="h-5 w-5 text-muted-foreground mt-1" />
-                        )}
-                        <div>
-                          <h3 className="font-medium">
-                            {contract.contractTitle}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            {contract.operator} • {contract.contractorName} •{" "}
-                            {contract.contractNumber}
-                          </p>
-                          {contract.media && contract.media.length > 0 && (
-                            <div className="mt-2 space-y-1">
-                              <div className="flex items-center gap-2">
-                                <FileText className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-xs text-muted-foreground">
-                                  {contract.media.length} document(s)
-                                </span>
-                                {contract.zipUrl && (
-                                  <a
-                                    href={contract.zipUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline ml-2"
-                                  >
-                                    <Archive className="h-3 w-3" />
-                                    Download All
-                                  </a>
-                                )}
-                              </div>
-                              <div className="flex flex-wrap gap-2">
-                                {contract.media.map((doc, idx) => (
-                                  <a
-                                    key={idx}
-                                    href={doc.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                                  >
-                                    <ExternalLink className="h-3 w-3" />
-                                    {doc.originalName || doc.filename}
-                                  </a>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium">
-                          ${contract.contractValue?.toLocaleString() || "N/A"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {contract.year}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <SearchTable columns={searchColumns} data={results} />
           </div>
         )}
 
@@ -252,7 +167,7 @@ const Search = () => {
 
         {/* Suggestions - only show when not searched */}
         {!hasSearched && (
-          <div className="grid md:grid-cols-2 gap-6 pt-4">
+          <div className="grid md:grid-cols-2 gap-6 pt-4 max-w-3xl mx-auto">
             {/* Recent Searches */}
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
