@@ -84,6 +84,7 @@ const AppLayout = () => {
     <div className="flex h-screen">
       <aside className="w-64 border-r bg-muted/30 flex flex-col">
         <div className="p-4 border-b">
+          <img src="/ncdmb.png" alt="logo" />
           <h1 className="text-lg font-semibold">DocQuery</h1>
         </div>
 
