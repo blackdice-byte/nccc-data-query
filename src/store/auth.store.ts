@@ -3,11 +3,21 @@ import { api } from "@/config/axios";
 import { API_URL } from "@/constants";
 import { type IAuthUser } from "@/interface/user";
 
+// Recent search type
+export interface RecentSearch {
+  _id: string;
+  query: string;
+  resultsCount: number;
+  tab: string;
+  createdAt: string;
+}
+
 // Storage keys
 const STORAGE_KEYS = {
   ACCESS_TOKEN: "accessToken",
   REFRESH_TOKEN: "refreshToken",
   USER: "user",
+  RECENT_SEARCHES: "recentSearches",
 } as const;
 
 // Storage helpers
@@ -20,6 +30,9 @@ const storage = {
   },
   setUser: (user: IAuthUser) => {
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+  },
+  setRecentSearches: (searches: RecentSearch[]) => {
+    localStorage.setItem(STORAGE_KEYS.RECENT_SEARCHES, JSON.stringify(searches));
   },
   getAccessToken: (): string | null => {
     return localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
@@ -36,10 +49,20 @@ const storage = {
       return null;
     }
   },
+  getRecentSearches: (): RecentSearch[] => {
+    const searchesStr = localStorage.getItem(STORAGE_KEYS.RECENT_SEARCHES);
+    if (!searchesStr) return [];
+    try {
+      return JSON.parse(searchesStr) as RecentSearch[];
+    } catch {
+      return [];
+    }
+  },
   clear: () => {
     localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.USER);
+    localStorage.removeItem(STORAGE_KEYS.RECENT_SEARCHES);
   },
 };
 
@@ -47,6 +70,7 @@ interface AuthState {
   user: IAuthUser | null;
   accessToken: string | null;
   refreshToken: string | null;
+  recentSearches: RecentSearch[];
   isLoading: boolean;
   error: string | null;
 
@@ -57,6 +81,7 @@ interface AuthState {
   fetchMe: () => Promise<boolean>;
   logout: () => void;
   setAuth: (user: IAuthUser, accessToken: string, refreshToken: string) => void;
+  setRecentSearches: (searches: RecentSearch[]) => void;
   clearError: () => void;
   initializeFromStorage: () => Promise<void>;
 }
@@ -73,6 +98,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
   user: null,
   accessToken: null,
   refreshToken: null,
+  recentSearches: [],
   isLoading: false,
   error: null,
 
@@ -81,13 +107,15 @@ export const useAuthStore = create<AuthState>()((set) => ({
     try {
       const { data } = await api.post("/auth/signin", { email, password });
       if (data.success) {
-        const { user, accessToken, refreshToken } = data.data;
+        const { user, accessToken, refreshToken, recentSearches = [] } = data.data;
         storage.setTokens(accessToken, refreshToken);
         storage.setUser(user);
+        storage.setRecentSearches(recentSearches);
         set({
           user,
           accessToken,
           refreshToken,
+          recentSearches,
           isLoading: false,
         });
         return true;
@@ -135,13 +163,15 @@ export const useAuthStore = create<AuthState>()((set) => ({
       const data = await response.json();
 
       if (data.success) {
-        const { user, accessToken, refreshToken } = data.data;
+        const { user, accessToken, refreshToken, recentSearches = [] } = data.data;
         storage.setTokens(accessToken, refreshToken);
         storage.setUser(user);
+        storage.setRecentSearches(recentSearches);
         set({
           user,
           accessToken,
           refreshToken,
+          recentSearches,
           isLoading: false,
         });
         return true;
@@ -182,13 +212,23 @@ export const useAuthStore = create<AuthState>()((set) => ({
 
   logout: () => {
     storage.clear();
-    set({ user: null, accessToken: null, refreshToken: null });
+    set({
+      user: null,
+      accessToken: null,
+      refreshToken: null,
+      recentSearches: [],
+    });
   },
 
   setAuth: (user, accessToken, refreshToken) => {
     storage.setTokens(accessToken, refreshToken);
     storage.setUser(user);
     set({ user, accessToken, refreshToken });
+  },
+
+  setRecentSearches: (searches) => {
+    storage.setRecentSearches(searches);
+    set({ recentSearches: searches });
   },
 
   fetchMe: async () => {
@@ -198,19 +238,19 @@ export const useAuthStore = create<AuthState>()((set) => ({
     try {
       const { data } = await api.get("/auth/me");
       if (data.success) {
-        const user = data.data.user;
+        const { user, recentSearches = [] } = data.data;
         storage.setUser(user);
+        storage.setRecentSearches(recentSearches);
         set({
           user,
           accessToken,
           refreshToken: storage.getRefreshToken(),
+          recentSearches,
         });
         return true;
       }
-      // Don't clear storage on failure - keep existing data
       return false;
     } catch {
-      // Don't clear storage on network error - keep existing data
       return false;
     }
   },
@@ -219,11 +259,12 @@ export const useAuthStore = create<AuthState>()((set) => ({
     const accessToken = storage.getAccessToken();
     const refreshToken = storage.getRefreshToken();
     const user = storage.getUser();
+    const recentSearches = storage.getRecentSearches();
 
     if (accessToken && user) {
-      set({ user, accessToken, refreshToken });
+      set({ user, accessToken, refreshToken, recentSearches });
 
-      // Fetch fresh user data in background (optional, don't block)
+      // Fetch fresh user data in background
       useAuthStore.getState().fetchMe();
     }
   },

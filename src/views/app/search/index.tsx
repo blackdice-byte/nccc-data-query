@@ -13,12 +13,7 @@ import { Button } from "@/components/ui/button";
 import { getSocket } from "@/config/socket";
 import { SearchTable } from "./search-table";
 import { searchColumns, type SearchResult } from "./search-columns";
-
-const recentSearches = [
-  "SEPLAT drilling contracts 2023",
-  "Offshore maintenance services",
-  "NNPC wireline agreements",
-];
+import { useAuthStore } from "@/store/auth.store";
 
 const trendingSearches = [
   "Environmental compliance contracts",
@@ -29,6 +24,7 @@ const trendingSearches = [
 type SearchTab = "all" | "ai-mode" | "documents" | "contracts";
 
 const Search = () => {
+  const { recentSearches } = useAuthStore();
   const [query, setQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -88,9 +84,9 @@ const Search = () => {
       setResults([]);
       setSearchStatus("Connecting...");
 
-      socket.emit("contract:search", { query: query.trim() });
+      socket.emit("contract:search", { query: query.trim(), tab: activeTab });
     },
-    [query]
+    [query, activeTab]
   );
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -110,6 +106,16 @@ const Search = () => {
     { id: "documents", label: "Documents" },
     { id: "contracts", label: "Contracts" },
   ];
+
+  // Get display recent searches - from API or fallback
+  const displayRecentSearches =
+    recentSearches.length > 0
+      ? recentSearches.map((s) => s.query + " .........")
+      : [
+          "SEPLAT drilling contracts 2023",
+          "Offshore maintenance services",
+          "NNPC wireline agreements",
+        ];
 
   // Results view - search bar at top left with tabs
   if (hasSearched) {
@@ -277,7 +283,7 @@ const Search = () => {
               Recent Searches
             </div>
             <ul className="space-y-2">
-              {recentSearches.map((item, index) => (
+              {displayRecentSearches.slice(0, 5).map((item, index) => (
                 <li key={index}>
                   <button
                     onClick={() => handleSuggestionClick(item)}
