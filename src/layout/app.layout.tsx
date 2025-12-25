@@ -68,6 +68,7 @@ const routeLabels: Record<string, string> = {
   contracts: "Contracts",
   query: "Query",
   documents: "Documents",
+  archive: "Archive",
   history: "History",
   bookmarks: "Bookmarks",
   settings: "Settings",
