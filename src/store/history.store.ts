@@ -16,7 +16,6 @@ interface HistoryState {
   error: string | null;
 
   fetchHistory: () => Promise<void>;
-  addHistory: (query: string, resultsCount: number, tab?: string) => Promise<void>;
   deleteHistory: (id: string) => Promise<boolean>;
   clearAllHistory: () => Promise<boolean>;
   clearError: () => void;
@@ -31,7 +30,7 @@ export const useHistoryStore = create<HistoryState>()((set) => ({
   fetchHistory: async () => {
     set({ isLoading: true, error: null });
     try {
-      const { data } = await api.get("/history");
+      const { data } = await api.get("/contracts/search/history");
       if (data.success) {
         set({
           history: data.data.history,
@@ -50,26 +49,10 @@ export const useHistoryStore = create<HistoryState>()((set) => ({
     }
   },
 
-  addHistory: async (query: string, resultsCount: number, tab = "all") => {
-    try {
-      const { data } = await api.post("/history", { query, resultsCount, tab });
-      if (data.success) {
-        // Prepend new history item
-        set((state) => ({
-          history: [data.data, ...state.history],
-          total: state.total + 1,
-        }));
-      }
-    } catch (err: unknown) {
-      // Silently fail - history is not critical
-      console.error("Failed to save search history:", err);
-    }
-  },
-
   deleteHistory: async (id: string) => {
     set({ isLoading: true, error: null });
     try {
-      const { data } = await api.delete(`/history/${id}`);
+      const { data } = await api.delete(`/contracts/search/history/${id}`);
       if (data.success) {
         set((state) => ({
           history: state.history.filter((item) => item._id !== id),
@@ -94,7 +77,7 @@ export const useHistoryStore = create<HistoryState>()((set) => ({
   clearAllHistory: async () => {
     set({ isLoading: true, error: null });
     try {
-      const { data } = await api.delete("/history");
+      const { data } = await api.delete("/contracts/search/history");
       if (data.success) {
         set({ history: [], total: 0, isLoading: false });
         return true;
