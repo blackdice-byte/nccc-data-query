@@ -1,4 +1,10 @@
-import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
+import {
+  Outlet,
+  NavLink,
+  useNavigate,
+  useLocation,
+  Link,
+} from "react-router-dom";
 import {
   Search,
   FileText,
@@ -9,6 +15,7 @@ import {
   Home,
   MessageSquareText,
   Shield,
+  ChevronRight,
 } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -35,6 +42,16 @@ interface NavItem {
   icon: typeof Search;
   label: string;
 }
+
+// Mock bookmarks - replace with actual store/API
+const topBarBookmarks = [
+  { id: "1", title: "Offshore Drilling Services", href: "/app/contracts/1" },
+  { id: "2", title: "Pipeline Maintenance", href: "/app/contracts/2" },
+  { id: "3", title: "Wireline Logging", href: "/app/contracts/3" },
+  { id: "4", title: "Environmental Assessment", href: "/app/contracts/4" },
+  { id: "5", title: "Subsea Installation", href: "/app/contracts/5" },
+  { id: "6", title: "FPSO Maintenance", href: "/app/contracts/6" },
+];
 
 const navItems: NavItem[] = [
   { to: "/app", icon: Search, label: "Search NCCC" },
@@ -151,61 +168,93 @@ const AppLayout = () => {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Navigation */}
-        <header className="h-14 border-b flex items-center justify-between px-4">
-          {/* Breadcrumb */}
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/app" className="flex items-center gap-1">
-                  <Home className="h-4 w-4" />
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              {breadcrumbs.slice(1).map((crumb) => (
-                <BreadcrumbItem key={crumb.href}>
-                  <BreadcrumbSeparator />
-                  {crumb.isLast ? (
-                    <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                  ) : (
-                    <BreadcrumbLink href={crumb.href}>
-                      {crumb.label}
-                    </BreadcrumbLink>
-                  )}
+        <header className="border-b">
+          <div className="h-14 flex items-center justify-between px-4">
+            {/* Breadcrumb */}
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink
+                    href="/app"
+                    className="flex items-center gap-1"
+                  >
+                    <Home className="h-4 w-4" />
+                  </BreadcrumbLink>
                 </BreadcrumbItem>
-              ))}
-            </BreadcrumbList>
-          </Breadcrumb>
+                {breadcrumbs.slice(1).map((crumb) => (
+                  <BreadcrumbItem key={crumb.href}>
+                    <BreadcrumbSeparator />
+                    {crumb.isLast ? (
+                      <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                    ) : (
+                      <BreadcrumbLink href={crumb.href}>
+                        {crumb.label}
+                      </BreadcrumbLink>
+                    )}
+                  </BreadcrumbItem>
+                ))}
+              </BreadcrumbList>
+            </Breadcrumb>
 
-          {/* User Profile */}
-          <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-3 outline-none">
-              <div className="text-right">
-                <p className="text-sm font-medium">{user?.username}</p>
-                <p className="text-xs text-muted-foreground">{user?.email}</p>
+            {/* User Profile */}
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center gap-3 outline-none">
+                <div className="text-right">
+                  <p className="text-sm font-medium">{user?.username}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email}</p>
+                </div>
+                <Avatar className="h-9 w-9">
+                  <AvatarImage src={user?.avatar} alt={user?.username} />
+                  <AvatarFallback>
+                    {getInitials(user?.username || "U")}
+                  </AvatarFallback>
+                </Avatar>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate("/app/settings")}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="text-destructive"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Bookmarks Bar */}
+          {topBarBookmarks.length > 0 && (
+            <div className="h-9 px-4 flex items-center gap-1 border-t bg-muted/30 overflow-x-auto">
+              <Bookmark className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <div className="flex items-center gap-1 overflow-hidden">
+                {topBarBookmarks.slice(0, 6).map((bookmark) => (
+                  <Link
+                    key={bookmark.id}
+                    to={bookmark.href}
+                    className="flex items-center gap-1.5 px-2 py-1 text-xs rounded hover:bg-muted transition-colors truncate max-w-[140px]"
+                    title={bookmark.title}
+                  >
+                    <FileText className="h-3 w-3 shrink-0 text-muted-foreground" />
+                    <span className="truncate">{bookmark.title}</span>
+                  </Link>
+                ))}
               </div>
-              <Avatar className="h-9 w-9">
-                <AvatarImage src={user?.avatar} alt={user?.username} />
-                <AvatarFallback>
-                  {getInitials(user?.username || "U")}
-                </AvatarFallback>
-              </Avatar>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/app/settings")}>
-                <Settings className="mr-2 h-4 w-4" />
-                Settings
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={handleLogout}
-                className="text-destructive"
+              <Link
+                to="/app/bookmarks"
+                className="flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0 ml-auto"
               >
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                All
+                <ChevronRight className="h-3 w-3" />
+              </Link>
+            </div>
+          )}
         </header>
 
         <main className="flex-1 overflow-auto">
