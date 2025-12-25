@@ -1,9 +1,9 @@
 import React from 'react'
 
-const Document = () => {
+const Archive = () => {
   return (
     <div>Document</div>
   )
 }
 
-export default Document
+export default Archive

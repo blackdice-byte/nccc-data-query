@@ -16,6 +16,7 @@ import {
   MessageSquareText,
   Shield,
   ChevronRight,
+  Archive,
 } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -56,7 +57,7 @@ const topBarBookmarks = [
 const navItems: NavItem[] = [
   { to: "/app", icon: Search, label: "Search NCCC" },
   { to: "/app/query", icon: MessageSquareText, label: "NCCC Contracts" },
-  { to: "/app/documents", icon: FileText, label: "Documents" },
+  { to: "/app/archive", icon: Archive, label: "Archive" },
   { to: "/app/history", icon: History, label: "History" },
   { to: "/app/bookmarks", icon: Bookmark, label: "Bookmarks" },
   { to: "/app/settings", icon: Settings, label: "Settings" },
