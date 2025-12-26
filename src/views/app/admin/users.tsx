@@ -33,45 +33,19 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { api } from "@/config/axios";
-
-interface User {
-  _id: string;
-  username: string;
-  email: string;
-  firstname?: string;
-  lastname?: string;
-  avatar?: string;
-  role: string;
-  authProvider: string;
-  createdAt: string;
-}
+import { useUserStore, type User } from "@/store/user.store";
 
 const Users = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { users, isLoading, fetchUsers, updateUserRole, deleteUser } = useUserStore();
   const [filter, setFilter] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const fetchUsers = async () => {
-    try {
-      const { data } = await api.get("/auth/users");
-      if (data.success) {
-        setUsers(data.data);
-      }
-    } catch {
-      toast.error("Failed to fetch users");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   const filteredUsers = users.filter(
     (user) =>
@@ -100,51 +74,40 @@ const Users = () => {
     if (!selectedUser) return;
     setActionLoading(true);
 
-    try {
-      const newRole = selectedUser.role === "admin" ? "user" : "admin";
-      const { data } = await api.patch(`/auth/users/${selectedUser._id}/role`, {
-        role: newRole,
-      });
+    const newRole = selectedUser.role === "admin" ? "user" : "admin";
+    const success = await updateUserRole(selectedUser._id, newRole);
 
-      if (data.success) {
-        setUsers((prev) =>
-          prev.map((u) =>
-            u._id === selectedUser._id ? { ...u, role: newRole } : u
-          )
-        );
-        toast.success(
-          `${selectedUser.username} is now ${newRole === "admin" ? "an admin" : "a user"}`
-        );
-      }
-    } catch {
+    if (success) {
+      toast.success(
+        `${selectedUser.username} is now ${newRole === "admin" ? "an admin" : "a user"}`
+      );
+    } else {
       toast.error("Failed to update user role");
-    } finally {
-      setActionLoading(false);
-      setRoleDialogOpen(false);
-      setSelectedUser(null);
     }
+
+    setActionLoading(false);
+    setRoleDialogOpen(false);
+    setSelectedUser(null);
   };
 
   const handleDeleteUser = async () => {
     if (!selectedUser) return;
     setActionLoading(true);
 
-    try {
-      const { data } = await api.delete(`/auth/users/${selectedUser._id}`);
-      if (data.success) {
-        setUsers((prev) => prev.filter((u) => u._id !== selectedUser._id));
-        toast.success(`${selectedUser.username} has been deleted`);
-      }
-    } catch {
+    const success = await deleteUser(selectedUser._id);
+
+    if (success) {
+      toast.success(`${selectedUser.username} has been deleted`);
+    } else {
       toast.error("Failed to delete user");
-    } finally {
-      setActionLoading(false);
-      setDeleteDialogOpen(false);
-      setSelectedUser(null);
     }
+
+    setActionLoading(false);
+    setDeleteDialogOpen(false);
+    setSelectedUser(null);
   };
 
-  if (isLoading) {
+  if (isLoading && users.length === 0) {
     return (
       <div className="p-6 flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
