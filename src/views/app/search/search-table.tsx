@@ -52,6 +52,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import type { SearchResult } from "./search-columns";
 import { useBookmarkStore } from "@/store/bookmark.store";
+import { useArchiveStore } from "@/store/archive.store";
 
 interface SearchTableProps<TData extends SearchResult, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -68,6 +69,7 @@ export function SearchTable<TData extends SearchResult, TValue>({
   const [rowSelection, setRowSelection] = useState({});
 
   const { addBookmark, removeBookmark, isBookmarked } = useBookmarkStore();
+  const { archiveForUser, isArchivedByUser } = useArchiveStore();
 
   const table = useReactTable({
     data,
@@ -114,9 +116,13 @@ export function SearchTable<TData extends SearchResult, TValue>({
     }
   };
 
-  const handleArchive = (contract: SearchResult) => {
-    // TODO: Implement archive API call
-    toast.success(`Archived: ${contract.contractTitle}`);
+  const handleArchive = async (contract: SearchResult) => {
+    const success = await archiveForUser(contract._id);
+    if (success) {
+      toast.success(`Archived: ${contract.contractTitle}`);
+    } else {
+      toast.error("Failed to archive contract");
+    }
   };
 
   const handleViewDetails = (contract: SearchResult) => {
@@ -197,6 +203,7 @@ export function SearchTable<TData extends SearchResult, TValue>({
               table.getRowModel().rows.map((row) => {
                 const contract = row.original;
                 const bookmarked = isBookmarked(contract._id);
+                const archived = isArchivedByUser(contract._id);
                 return (
                   <ContextMenu key={row.id}>
                     <ContextMenuTrigger asChild>
@@ -252,9 +259,12 @@ export function SearchTable<TData extends SearchResult, TValue>({
                         )}
                         <ContextMenuShortcut>⌘B</ContextMenuShortcut>
                       </ContextMenuItem>
-                      <ContextMenuItem onClick={() => handleArchive(contract)}>
+                      <ContextMenuItem 
+                        onClick={() => handleArchive(contract)}
+                        disabled={archived}
+                      >
                         <Archive className="mr-2 h-4 w-4" />
-                        Archive
+                        {archived ? "Already Archived" : "Archive"}
                       </ContextMenuItem>
                       <ContextMenuSeparator />
                       <ContextMenuItem

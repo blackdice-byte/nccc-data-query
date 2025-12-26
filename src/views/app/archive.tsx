@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Archive as ArchiveIcon,
   Search,
@@ -10,6 +10,7 @@ import {
   FileText,
   Loader2,
   AlertTriangle,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,78 +32,49 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-
-interface ArchivedContract {
-  id: string;
-  contractTitle: string;
-  operator: string;
-  contractorName: string;
-  contractNumber: string;
-  year: string;
-  contractValue: number;
-  archivedAt: string;
-  archivedBy: string;
-}
-
-// Mock data - replace with actual API
-const mockArchived: ArchivedContract[] = [
-  {
-    id: "1",
-    contractTitle: "Legacy Drilling Services Agreement",
-    operator: "NNPC",
-    contractorName: "Baker Hughes",
-    contractNumber: "NNPC/BH/2020/045",
-    year: "2020",
-    contractValue: 12000000,
-    archivedAt: "2024-12-20T10:30:00Z",
-    archivedBy: "John Doe",
-  },
-  {
-    id: "2",
-    contractTitle: "Expired Pipeline Inspection Contract",
-    operator: "Shell",
-    contractorName: "TechnipFMC",
-    contractNumber: "SHELL/TFM/2019/012",
-    year: "2019",
-    contractValue: 5500000,
-    archivedAt: "2024-12-18T14:20:00Z",
-    archivedBy: "Jane Smith",
-  },
-  {
-    id: "3",
-    contractTitle: "Completed Subsea Installation Project",
-    operator: "Chevron",
-    contractorName: "Subsea 7",
-    contractNumber: "CVX/SS7/2021/008",
-    year: "2021",
-    contractValue: 28000000,
-    archivedAt: "2024-12-15T09:15:00Z",
-    archivedBy: "Admin User",
-  },
-  {
-    id: "4",
-    contractTitle: "Old Environmental Assessment",
-    operator: "SEPLAT",
-    contractorName: "ERM Nigeria",
-    contractNumber: "SEPLAT/ERM/2018/003",
-    year: "2018",
-    contractValue: 800000,
-    archivedAt: "2024-12-10T16:45:00Z",
-    archivedBy: "John Doe",
-  },
-];
+import { useArchiveStore, type ArchivedContract } from "@/store/archive.store";
+import { useAuthStore } from "@/store/auth.store";
 
 const Archive = () => {
-  const [archived, setArchived] = useState<ArchivedContract[]>(mockArchived);
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === "admin";
+
+  const {
+    userArchive,
+    userTotal,
+    globalArchive,
+    globalTotal,
+    isLoading,
+    fetchUserArchive,
+    fetchGlobalArchive,
+    restoreForUser,
+    clearUserArchive,
+    restoreGlobally,
+    permanentlyDelete,
+    emptyGlobalArchive,
+  } = useArchiveStore();
+
   const [filter, setFilter] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"user" | "global">("user");
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<ArchivedContract | null>(null);
   const [emptyArchiveDialogOpen, setEmptyArchiveDialogOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  const filteredArchived = archived.filter(
+  useEffect(() => {
+    fetchUserArchive();
+    if (isAdmin) {
+      fetchGlobalArchive();
+    }
+  }, [fetchUserArchive, fetchGlobalArchive, isAdmin]);
+
+  const currentArchive = activeTab === "user" ? userArchive : globalArchive;
+  const currentTotal = activeTab === "user" ? userTotal : globalTotal;
+
+  const filteredArchived = currentArchive.filter(
     (item) =>
       item.contractTitle.toLowerCase().includes(filter.toLowerCase()) ||
       item.operator.toLowerCase().includes(filter.toLowerCase()) ||
@@ -118,49 +90,80 @@ const Archive = () => {
     });
   };
 
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number | string) => {
+    const numValue = typeof value === "string" ? parseFloat(value) : value;
+    if (isNaN(numValue)) return value;
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(value);
+    }).format(numValue);
   };
 
-  const handleRestore = async (id: string) => {
-    setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    setArchived((prev) => prev.filter((item) => item.id !== id));
-    setIsLoading(false);
+  const handleRestore = async () => {
+    if (!selectedItem) return;
+    setActionLoading(true);
+    
+    const success = activeTab === "user" 
+      ? await restoreForUser(selectedItem.id)
+      : await restoreGlobally(selectedItem.id);
+    
+    setActionLoading(false);
     setRestoreDialogOpen(false);
     setSelectedItem(null);
-    toast.success("Contract restored successfully");
+    
+    if (success) {
+      toast.success("Contract restored successfully");
+    } else {
+      toast.error("Failed to restore contract");
+    }
   };
 
-  const handlePermanentDelete = async (id: string) => {
-    setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    setArchived((prev) => prev.filter((item) => item.id !== id));
-    setIsLoading(false);
+  const handlePermanentDelete = async () => {
+    if (!selectedItem) return;
+    setActionLoading(true);
+    
+    const success = await permanentlyDelete(selectedItem.id);
+    
+    setActionLoading(false);
     setDeleteDialogOpen(false);
     setSelectedItem(null);
-    toast.success("Contract permanently deleted");
+    
+    if (success) {
+      toast.success("Contract permanently deleted");
+    } else {
+      toast.error("Failed to delete contract");
+    }
   };
 
   const handleEmptyArchive = async () => {
-    setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    setArchived([]);
-    setIsLoading(false);
+    setActionLoading(true);
+    
+    const success = activeTab === "user"
+      ? await clearUserArchive()
+      : await emptyGlobalArchive();
+    
+    setActionLoading(false);
     setEmptyArchiveDialogOpen(false);
-    toast.success("Archive emptied successfully");
+    
+    if (success) {
+      toast.success("Archive emptied successfully");
+    } else {
+      toast.error("Failed to empty archive");
+    }
   };
 
-  const getSelectedContract = () => {
-    return archived.find((item) => item.id === selectedItem);
+  const getArchivedByName = (item: ArchivedContract) => {
+    if (activeTab === "user") return "You";
+    if (item.archivedBy) {
+      const { firstname, lastname, username } = item.archivedBy;
+      if (firstname || lastname) {
+        return `${firstname || ""} ${lastname || ""}`.trim();
+      }
+      return username;
+    }
+    return "Admin";
   };
 
   return (
@@ -169,16 +172,16 @@ const Archive = () => {
         <div>
           <h1 className="text-2xl font-bold">Archive</h1>
           <p className="text-muted-foreground">
-            Archived NCCC contracts • {archived.length} item
-            {archived.length !== 1 ? "s" : ""}
+            Archived NCCC contracts • {currentTotal} item
+            {currentTotal !== 1 ? "s" : ""}
           </p>
         </div>
-        {archived.length > 0 && (
+        {currentTotal > 0 && (
           <Button
             variant="outline"
             size="sm"
             onClick={() => setEmptyArchiveDialogOpen(true)}
-            disabled={isLoading}
+            disabled={isLoading || actionLoading}
             className="text-destructive hover:text-destructive"
           >
             <Trash2 className="h-4 w-4 mr-2" />
@@ -187,8 +190,24 @@ const Archive = () => {
         )}
       </div>
 
+      {/* Tabs for User/Admin archive */}
+      {isAdmin && (
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "user" | "global")}>
+          <TabsList>
+            <TabsTrigger value="user">
+              <ArchiveIcon className="h-4 w-4 mr-2" />
+              My Archive ({userTotal})
+            </TabsTrigger>
+            <TabsTrigger value="global">
+              <Shield className="h-4 w-4 mr-2" />
+              Global Archive ({globalTotal})
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      )}
+
       {/* Filter */}
-      {archived.length > 0 && (
+      {currentTotal > 0 && (
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -200,14 +219,26 @@ const Archive = () => {
         </div>
       )}
 
+      {/* Loading State */}
+      {isLoading && currentTotal === 0 && (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <Loader2 className="h-12 w-12 mx-auto text-muted-foreground mb-4 animate-spin" />
+            <p className="text-muted-foreground">Loading archive...</p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Empty State */}
-      {archived.length === 0 && (
+      {!isLoading && currentTotal === 0 && (
         <Card>
           <CardContent className="p-12 text-center">
             <ArchiveIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">Archive is empty</h3>
             <p className="text-muted-foreground mb-4">
-              Archived contracts will appear here
+              {activeTab === "user" 
+                ? "Contracts you archive will appear here"
+                : "Globally archived contracts will appear here"}
             </p>
             <Button onClick={() => window.open("/app", "_self")}>
               <Search className="h-4 w-4 mr-2" />
@@ -218,7 +249,7 @@ const Archive = () => {
       )}
 
       {/* No Filter Results */}
-      {archived.length > 0 && filteredArchived.length === 0 && (
+      {currentTotal > 0 && filteredArchived.length === 0 && (
         <Card>
           <CardContent className="p-8 text-center">
             <Search className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
@@ -230,14 +261,17 @@ const Archive = () => {
       )}
 
       {/* Info Banner */}
-      {archived.length > 0 && (
+      {currentTotal > 0 && (
         <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg border">
           <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
           <div className="text-sm">
-            <p className="font-medium">Archived contracts</p>
+            <p className="font-medium">
+              {activeTab === "user" ? "Your archived contracts" : "Globally archived contracts"}
+            </p>
             <p className="text-muted-foreground">
-              Items in the archive are hidden from search results. You can
-              restore them at any time or permanently delete them.
+              {activeTab === "user"
+                ? "Items in your archive are hidden from your search results. You can restore them at any time."
+                : "Globally archived contracts are hidden from all users' search results. Only admins can restore or permanently delete them."}
             </p>
           </div>
         </div>
@@ -276,24 +310,28 @@ const Archive = () => {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
                         onClick={() => {
-                          setSelectedItem(item.id);
+                          setSelectedItem(item);
                           setRestoreDialogOpen(true);
                         }}
                       >
                         <RotateCcw className="h-4 w-4 mr-2" />
                         Restore
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive"
-                        onClick={() => {
-                          setSelectedItem(item.id);
-                          setDeleteDialogOpen(true);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete Permanently
-                      </DropdownMenuItem>
+                      {activeTab === "global" && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => {
+                              setSelectedItem(item);
+                              setDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Permanently
+                          </DropdownMenuItem>
+                        </>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -318,7 +356,7 @@ const Archive = () => {
 
                 <div className="mt-3 pt-3 border-t flex items-center justify-between text-xs text-muted-foreground">
                   <span>Archived {formatDate(item.archivedAt)}</span>
-                  <span>by {item.archivedBy}</span>
+                  <span>by {getArchivedByName(item)}</span>
                 </div>
               </CardContent>
             </Card>
@@ -332,17 +370,17 @@ const Archive = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Restore contract?</AlertDialogTitle>
             <AlertDialogDescription>
-              "{getSelectedContract()?.contractTitle}" will be restored and
+              "{selectedItem?.contractTitle}" will be restored and
               visible in search results again.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => selectedItem && handleRestore(selectedItem)}
-              disabled={isLoading}
+              onClick={handleRestore}
+              disabled={actionLoading}
             >
-              {isLoading ? (
+              {actionLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 "Restore"
@@ -358,18 +396,18 @@ const Archive = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete permanently?</AlertDialogTitle>
             <AlertDialogDescription>
-              "{getSelectedContract()?.contractTitle}" will be permanently
+              "{selectedItem?.contractTitle}" will be permanently
               deleted. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => selectedItem && handlePermanentDelete(selectedItem)}
-              disabled={isLoading}
+              onClick={handlePermanentDelete}
+              disabled={actionLoading}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isLoading ? (
+              {actionLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 "Delete Permanently"
@@ -388,20 +426,22 @@ const Archive = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Empty archive?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete all {archived.length} archived
-              contract{archived.length !== 1 ? "s" : ""}. This action cannot be
-              undone.
+              {activeTab === "user"
+                ? `This will restore all ${currentTotal} contracts to your search results.`
+                : `This will permanently delete all ${currentTotal} archived contract${currentTotal !== 1 ? "s" : ""}. This action cannot be undone.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleEmptyArchive}
-              disabled={isLoading}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={actionLoading}
+              className={activeTab === "global" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
             >
-              {isLoading ? (
+              {actionLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
+              ) : activeTab === "user" ? (
+                "Clear Archive"
               ) : (
                 "Empty Archive"
               )}
