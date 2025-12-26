@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   Outlet,
   NavLink,
@@ -37,22 +38,13 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { useAuthStore } from "@/store/auth.store";
+import { useBookmarkStore } from "@/store/bookmark.store";
 
 interface NavItem {
   to: string;
   icon: typeof Search;
   label: string;
 }
-
-// Mock bookmarks - replace with actual store/API
-const topBarBookmarks = [
-  { id: "1", title: "Offshore Drilling Services", href: "/app/contracts/1" },
-  { id: "2", title: "Pipeline Maintenance", href: "/app/contracts/2" },
-  { id: "3", title: "Wireline Logging", href: "/app/contracts/3" },
-  { id: "4", title: "Environmental Assessment", href: "/app/contracts/4" },
-  { id: "5", title: "Subsea Installation", href: "/app/contracts/5" },
-  { id: "6", title: "FPSO Maintenance", href: "/app/contracts/6" },
-];
 
 const navItems: NavItem[] = [
   { to: "/app", icon: Search, label: "Search NCCC" },
@@ -78,7 +70,12 @@ const AppLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuthStore();
-  console.log(user);
+  const { bookmarks, fetchBookmarks } = useBookmarkStore();
+
+  useEffect(() => {
+    fetchBookmarks();
+  }, [fetchBookmarks]);
+
   const handleLogout = () => {
     logout();
     navigate("/auth/signin");
@@ -232,31 +229,37 @@ const AppLayout = () => {
           </div>
 
           {/* Bookmarks Bar */}
-          {topBarBookmarks.length > 0 && (
-            <div className="h-9 px-4 flex items-center gap-1 border-t bg-muted/30 overflow-x-auto">
-              <Bookmark className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <div className="flex items-center gap-1 overflow-hidden">
-                {topBarBookmarks.slice(0, 6).map((bookmark) => (
-                  <Link
-                    key={bookmark.id}
-                    to={bookmark.href}
-                    className="flex items-center gap-1.5 px-2 py-1 text-xs rounded hover:bg-muted transition-colors truncate max-w-[140px]"
-                    title={bookmark.title}
-                  >
-                    <FileText className="h-3 w-3 shrink-0 text-muted-foreground" />
-                    <span className="truncate">{bookmark.title}</span>
-                  </Link>
-                ))}
-              </div>
-              <Link
-                to="/app/bookmarks"
-                className="flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0 ml-auto"
-              >
-                All
-                <ChevronRight className="h-3 w-3" />
-              </Link>
-            </div>
-          )}
+          <div className="h-9 px-4 flex items-center gap-1 border-t bg-muted/30 overflow-x-auto">
+            <Bookmark className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            {bookmarks.length > 0 ? (
+              <>
+                <div className="flex items-center gap-1 overflow-hidden">
+                  {bookmarks.slice(0, 6).map((bookmark) => (
+                    <Link
+                      key={bookmark.id}
+                      to={`/app/contracts/${bookmark.id}`}
+                      className="flex items-center gap-1.5 px-2 py-1 text-xs rounded hover:bg-muted transition-colors truncate max-w-[140px]"
+                      title={bookmark.contractTitle}
+                    >
+                      <FileText className="h-3 w-3 shrink-0 text-muted-foreground" />
+                      <span className="truncate">{bookmark.contractTitle}</span>
+                    </Link>
+                  ))}
+                </div>
+                <Link
+                  to="/app/bookmarks"
+                  className="flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0 ml-auto"
+                >
+                  All ({bookmarks.length})
+                  <ChevronRight className="h-3 w-3" />
+                </Link>
+              </>
+            ) : (
+              <span className="text-xs text-muted-foreground ml-2">
+                No bookmarks yet
+              </span>
+            )}
+          </div>
         </header>
 
         <main className="flex-1 overflow-auto">

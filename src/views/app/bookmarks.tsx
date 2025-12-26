@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Bookmark,
   Search,
@@ -9,6 +9,7 @@ import {
   Building2,
   FileText,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,70 +31,35 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-
-interface BookmarkedContract {
-  id: string;
-  contractTitle: string;
-  operator: string;
-  contractorName: string;
-  contractNumber: string;
-  year: string;
-  contractValue: number;
-  bookmarkedAt: string;
-}
-
-// Mock data - replace with actual API
-const mockBookmarks: BookmarkedContract[] = [
-  {
-    id: "1",
-    contractTitle: "Offshore Drilling Services for OML 40",
-    operator: "SEPLAT",
-    contractorName: "Schlumberger",
-    contractNumber: "SEPLAT/SCH/2024/001",
-    year: "2024",
-    contractValue: 15000000,
-    bookmarkedAt: "2024-12-24T10:30:00Z",
-  },
-  {
-    id: "2",
-    contractTitle: "Pipeline Maintenance and Inspection Services",
-    operator: "NNPC",
-    contractorName: "TechnipFMC",
-    contractNumber: "NNPC/TFM/2024/015",
-    year: "2024",
-    contractValue: 8500000,
-    bookmarkedAt: "2024-12-23T14:20:00Z",
-  },
-  {
-    id: "3",
-    contractTitle: "Wireline Logging Services",
-    operator: "Shell",
-    contractorName: "Halliburton",
-    contractNumber: "SHELL/HAL/2023/042",
-    year: "2023",
-    contractValue: 4200000,
-    bookmarkedAt: "2024-12-22T09:15:00Z",
-  },
-  {
-    id: "4",
-    contractTitle: "Environmental Impact Assessment",
-    operator: "Chevron",
-    contractorName: "ERM Nigeria",
-    contractNumber: "CVX/ERM/2024/008",
-    year: "2024",
-    contractValue: 1200000,
-    bookmarkedAt: "2024-12-20T16:45:00Z",
-  },
-];
+import { useBookmarkStore } from "@/store/bookmark.store";
 
 const Bookmarks = () => {
-  const [bookmarks, setBookmarks] =
-    useState<BookmarkedContract[]>(mockBookmarks);
+  const {
+    bookmarks,
+    isLoading,
+    error,
+    fetchBookmarks,
+    removeBookmark,
+    clearAllBookmarks,
+    clearError,
+  } = useBookmarkStore();
+
   const [filter, setFilter] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [clearAllDialogOpen, setClearAllDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    fetchBookmarks();
+  }, [fetchBookmarks]);
+
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      clearError();
+    }
+  }, [error, clearError]);
 
   const filteredBookmarks = bookmarks.filter(
     (item) =>
@@ -112,6 +78,7 @@ const Bookmarks = () => {
   };
 
   const formatCurrency = (value: number) => {
+    if (!value) return "N/A";
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
@@ -121,30 +88,41 @@ const Bookmarks = () => {
   };
 
   const handleRemoveBookmark = async (id: string) => {
-    setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    setBookmarks((prev) => prev.filter((item) => item.id !== id));
-    setIsLoading(false);
+    setIsDeleting(true);
+    const success = await removeBookmark(id);
+    setIsDeleting(false);
     setDeleteDialogOpen(false);
     setItemToDelete(null);
-    toast.success("Bookmark removed");
+    if (success) {
+      toast.success("Bookmark removed");
+    }
   };
 
   const handleClearAll = async () => {
-    setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    setBookmarks([]);
-    setIsLoading(false);
+    setIsDeleting(true);
+    const success = await clearAllBookmarks();
+    setIsDeleting(false);
     setClearAllDialogOpen(false);
-    toast.success("All bookmarks cleared");
+    if (success) {
+      toast.success("All bookmarks cleared");
+    }
   };
 
   const handleViewContract = (id: string) => {
-    // Navigate to contract details
     window.open(`/app/contracts/${id}`, "_self");
   };
+
+  // Loading state
+  if (isLoading && bookmarks.length === 0) {
+    return (
+      <div className="p-6 max-w-5xl mx-auto">
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="h-10 w-10 animate-spin text-muted-foreground mb-4" />
+          <p className="text-muted-foreground">Loading bookmarks...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
@@ -155,17 +133,30 @@ const Bookmarks = () => {
             Your saved NCCC contracts for quick access
           </p>
         </div>
-        {bookmarks.length > 0 && (
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setClearAllDialogOpen(true)}
+            onClick={() => fetchBookmarks()}
             disabled={isLoading}
           >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Clear All
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+            />
+            Refresh
           </Button>
-        )}
+          {bookmarks.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setClearAllDialogOpen(true)}
+              disabled={isLoading}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Clear All
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Filter */}
@@ -300,12 +291,12 @@ const Bookmarks = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => itemToDelete && handleRemoveBookmark(itemToDelete)}
-              disabled={isLoading}
+              disabled={isDeleting}
             >
-              {isLoading ? (
+              {isDeleting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 "Remove"
@@ -329,13 +320,13 @@ const Bookmarks = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleClearAll}
-              disabled={isLoading}
+              disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isLoading ? (
+              {isDeleting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 "Clear All"
