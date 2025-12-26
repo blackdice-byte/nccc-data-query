@@ -4,6 +4,7 @@ import History from "@/views/app/history";
 import Query from "@/views/app/query";
 import Search from "@/views/app/search";
 import Setting from "@/views/app/settings";
+import ContractDetail from "@/views/app/contract-detail";
 
 export const appRoutes = [
   {
@@ -13,6 +14,10 @@ export const appRoutes = [
   {
     path: "query",
     element: <Query />,
+  },
+  {
+    path: "contracts/:id",
+    element: <ContractDetail />,
   },
   {
     path: "history",

@@ -139,7 +139,7 @@ const AppLayout = () => {
               alt="logo"
               className="h-10 w-10 object-contain"
             />
-            <h1 className="text-lg font-semibold">NCCC Data Query</h1>
+            <h1 className="text-lg font-semibold">NCCC Portal</h1>
           </div>
         </div>
 
