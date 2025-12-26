@@ -112,6 +112,10 @@ const Search = () => {
     setSearchStatus("");
   };
 
+  const handleArchive = (contractId: string) => {
+    setResults((prev) => prev.filter((r) => r._id !== contractId));
+  };
+
   const tabs: { id: SearchTab; label: string }[] = [
     { id: "all", label: "All" },
     { id: "ai-mode", label: "AI Mode" },
@@ -221,7 +225,11 @@ const Search = () => {
 
           {/* Results Table */}
           {results.length > 0 && (
-            <SearchTable columns={searchColumns} data={results} />
+            <SearchTable
+              columns={searchColumns}
+              data={results}
+              onArchive={handleArchive}
+            />
           )}
 
           {/* No Results */}

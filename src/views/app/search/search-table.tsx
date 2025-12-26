@@ -57,11 +57,13 @@ import { useArchiveStore } from "@/store/archive.store";
 interface SearchTableProps<TData extends SearchResult, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  onArchive?: (contractId: string) => void;
 }
 
 export function SearchTable<TData extends SearchResult, TValue>({
   columns,
   data,
+  onArchive,
 }: SearchTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -120,6 +122,7 @@ export function SearchTable<TData extends SearchResult, TValue>({
     const success = await archiveForUser(contract._id);
     if (success) {
       toast.success(`Archived: ${contract.contractTitle}`);
+      onArchive?.(contract._id);
     } else {
       toast.error("Failed to archive contract");
     }
