@@ -1,26 +1,47 @@
 import { Link } from "react-router-dom";
-import { Search, FileText, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Search, FileText, Zap } from "lucide-react";
+import { GridScan } from "@/components/GridScan";
 
 const Home = () => {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col w-full h-full relative">
       {/* Hero Section */}
-      <section className="min-h-screen flex flex-col items-center justify-center text-center px-4">
-        <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6">
-          Find Documents <span className="text-primary">Instantly</span>
-        </h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mb-10">
-          Search through thousands of PDF documents with powerful query
-          capabilities. Get direct links to the files you need in seconds.
-        </p>
-        <div className="flex gap-4">
-          <Button asChild size="lg">
-            <Link to="/auth/signin">Get Started</Link>
-          </Button>
-          <Button variant="outline" size="lg" asChild>
-            <Link to="/about">Learn More</Link>
-          </Button>
+      <section className="min-h-screen h-full relative w-full flex flex-col items-center justify-center text-center px-4">
+        {/* GridScan Background */}
+        <div className="absolute inset-0 z-0 opacity-20">
+          <GridScan
+            sensitivity={0.55}
+            lineThickness={1}
+            linesColor="#392e4e"
+            gridScale={0.1}
+            scanColor="#FF9FFC"
+            scanOpacity={0.4}
+            enablePost
+            bloomIntensity={0.6}
+            chromaticAberration={0.002}
+            noiseIntensity={0.01}
+          />
+        </div>
+
+        {/* Hero Content */}
+        <div className="relative z-10">
+          <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6">
+            <span className="text-primary">NCCC</span> Portal
+          </h1>
+          <p className="text-xl text-muted-foreground max-w-2xl mb-10">
+            Search through thousands of NCCC contract documents with powerful
+            query capabilities. Get direct links to the files you need in
+            seconds.
+          </p>
+          <div className="flex gap-4 justify-center">
+            <Button asChild size="lg">
+              <Link to="/auth/signin">Get Started</Link>
+            </Button>
+            <Button variant="outline" size="lg" asChild>
+              <Link to="/about">Learn More</Link>
+            </Button>
+          </div>
         </div>
       </section>
 
@@ -28,7 +49,7 @@ const Home = () => {
       <section className="py-16 px-4 bg-muted/30">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-semibold text-center mb-10">
-            Why DocQuery?
+            Why NCCC Portal?
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             <div className="text-center">

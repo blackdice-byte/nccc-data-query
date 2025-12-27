@@ -1,20 +1,31 @@
-import { Link, NavLink } from "react-router-dom"
-import { Button } from "@/components/ui/button"
-import { ModeToggle } from "@/components/mode-toggle"
+import { Link, NavLink } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { ModeToggle } from "@/components/mode-toggle";
 
 const Navbar = () => {
   return (
     <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
       <nav className="flex items-center gap-6 px-6 py-3 rounded-full border bg-background/80 backdrop-blur-md shadow-sm">
-        <Link to="/" className="font-semibold">
-          DocQuery
+        <Link to="/" className="flex items-center gap-2 font-semibold">
+          <img
+            src="/ncdmb.png"
+            alt="NCCC Portal"
+            className="h-8 w-8 object-contain"
+          />
+          <span>
+            <span className="text-primary">NCCC</span> Portal
+          </span>
         </Link>
 
         <div className="flex items-center gap-4">
           <NavLink
             to="/"
             className={({ isActive }) =>
-              `text-sm transition-colors ${isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"}`
+              `text-sm transition-colors ${
+                isActive
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`
             }
           >
             Home
@@ -22,7 +33,11 @@ const Navbar = () => {
           <NavLink
             to="/about"
             className={({ isActive }) =>
-              `text-sm transition-colors ${isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"}`
+              `text-sm transition-colors ${
+                isActive
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`
             }
           >
             About
@@ -40,7 +55,7 @@ const Navbar = () => {
         </div>
       </nav>
     </header>
-  )
-}
+  );
+};
 
-export default Navbar
+export default Navbar;
