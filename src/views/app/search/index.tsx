@@ -13,9 +13,12 @@ import { Button } from "@/components/ui/button";
 import { getSocket } from "@/config/socket";
 import { SearchTable } from "./search-table";
 import { searchColumns, type SearchResult } from "./search-columns";
-import { useAuthStore } from "@/store/auth.store";
-import { useArchiveStore } from "@/store/archive.store";
-import { useBookmarkStore } from "@/store/bookmark.store";
+
+const recentSearches = [
+  "SEPLAT drilling contracts 2023",
+  "Offshore maintenance services",
+  "NNPC wireline agreements",
+];
 
 const trendingSearches = [
   "Environmental compliance contracts",
@@ -26,23 +29,12 @@ const trendingSearches = [
 type SearchTab = "all" | "ai-mode" | "documents" | "contracts";
 
 const Search = () => {
-  const { recentSearches, user } = useAuthStore();
-  const { fetchUserArchive } = useArchiveStore();
-  const { fetchBookmarks } = useBookmarkStore();
   const [query, setQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searchStatus, setSearchStatus] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
   const [activeTab, setActiveTab] = useState<SearchTab>("all");
-
-  // Fetch user's archive and bookmarks on mount for context menu state
-  useEffect(() => {
-    if (user) {
-      fetchUserArchive();
-      fetchBookmarks();
-    }
-  }, [user, fetchUserArchive, fetchBookmarks]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -112,26 +104,12 @@ const Search = () => {
     setSearchStatus("");
   };
 
-  const handleArchive = (contractId: string) => {
-    setResults((prev) => prev.filter((r) => r._id !== contractId));
-  };
-
   const tabs: { id: SearchTab; label: string }[] = [
     { id: "all", label: "All" },
     { id: "ai-mode", label: "AI Mode" },
     { id: "documents", label: "Documents" },
     { id: "contracts", label: "Contracts" },
   ];
-
-  // Get display recent searches - from API or fallback
-  const displayRecentSearches =
-    recentSearches.length > 0
-      ? recentSearches.map((s) => s.query + " .........")
-      : [
-          "SEPLAT drilling contracts 2023",
-          "Offshore maintenance services",
-          "NNPC wireline agreements",
-        ];
 
   // Results view - search bar at top left with tabs
   if (hasSearched) {
@@ -145,7 +123,7 @@ const Search = () => {
                 className="text-xl font-bold cursor-pointer"
                 onClick={handleClearSearch}
               >
-                NCCC Search Portal
+                DocQuery
               </h1>
               <div className="relative flex items-center max-w-xl flex-1">
                 <SearchIcon className="absolute left-3 h-4 w-4 text-muted-foreground" />
@@ -225,11 +203,7 @@ const Search = () => {
 
           {/* Results Table */}
           {results.length > 0 && (
-            <SearchTable
-              columns={searchColumns}
-              data={results}
-              onArchive={handleArchive}
-            />
+            <SearchTable columns={searchColumns} data={results} />
           )}
 
           {/* No Results */}
@@ -250,7 +224,7 @@ const Search = () => {
       <div className="w-full max-w-6xl space-y-6">
         {/* Logo/Title */}
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold tracking-tight">NCCC Search Portal</h1>
+          <h1 className="text-4xl font-bold tracking-tight">DocQuery</h1>
           <p className="text-muted-foreground">
             Search NCCC contracts, documents, and more
           </p>
@@ -262,7 +236,7 @@ const Search = () => {
             <SearchIcon className="absolute left-4 h-5 w-5 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Search by month, year, operator, contractor, contract title, contract number..."
+              placeholder="Search by operator, contractor, year, month... (e.g., SEPLAT June 2024)"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="w-full h-12 pl-12 pr-12 text-base rounded-full border-2 focus-visible:ring-2 focus-visible:ring-primary"
@@ -278,6 +252,11 @@ const Search = () => {
               <Mic className="h-5 w-5 text-muted-foreground" />
             </Button>
           </div>
+
+          {/* Search hint */}
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            Tip: Include year or month in your search (e.g., "drilling 2024", "NNPC June 2023", "maintenance 06/2024")
+          </p>
 
           {/* Search Buttons */}
           <div className="flex justify-center gap-3 mt-6">
@@ -303,7 +282,7 @@ const Search = () => {
               Recent Searches
             </div>
             <ul className="space-y-2">
-              {displayRecentSearches.slice(0, 5).map((item, index) => (
+              {recentSearches.map((item, index) => (
                 <li key={index}>
                   <button
                     onClick={() => handleSuggestionClick(item)}
